@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AAT — Equipment Quote Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@300;400;500;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#c8281e;--red-dark:#9e1e16;--red-light:#fdf0ef;
+  --navy:#1a2236;--navy-mid:#243049;
+  --white:#ffffff;--offwhite:#f6f6f4;
+  --border:#e0e0dc;--border-mid:#c8c8c4;
+  --text:#1a1a1a;--muted:#606060;--light:#9a9a9a;
+  --radius:2px;
+}
+
+/* FULL VIEWPORT, NO SCROLL */
+html,body{height:100%;margin:0;padding:0;overflow:hidden}
+body{
+  font-family:'Barlow',sans-serif;font-size:13px;
+  line-height:1.4;color:var(--text);background:var(--offwhite);
+  display:flex;flex-direction:column;
+}
+
+/* TOP BAR */
+.top-bar{height:4px;background:var(--navy);flex-shrink:0}
+
+/* HEADER — compact */
+.header{
+  background:var(--white);border-bottom:1px solid var(--border);
+  padding:0 20px;display:flex;align-items:center;justify-content:space-between;
+  height:52px;flex-shrink:0;
+}
+.logo-area{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:36px;height:36px;background:var(--navy);border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.logo-mark svg{width:22px;height:22px}
+.logo-top{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--navy)}
+.logo-top span{color:var(--red)}
+.logo-btm{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-top:1px}
+.header-badge{background:var(--red);color:var(--white);font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:5px 12px;border-radius:var(--radius)}
+
+/* TWO-COLUMN LAYOUT — fills remaining height */
+.app{
+  flex:1;display:grid;grid-template-columns:1fr 380px;
+  overflow:hidden;min-height:0;
+}
+
+/* LEFT — no scroll, everything fits */
+.left{
+  background:var(--white);border-right:1px solid var(--border);
+  padding:12px 20px 12px;
+  display:flex;flex-direction:column;gap:10px;
+  overflow:hidden;
+}
+
+/* RIGHT — scrollable for quote doc */
+.right{
+  background:var(--offwhite);padding:12px 18px;
+  overflow-y:auto;display:flex;flex-direction:column;gap:10px;
+}
+
+/* SECTION LABEL */
+.sec{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sec-num{
+  width:18px;height:18px;border-radius:50%;background:var(--red);color:var(--white);
+  font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sec-title{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:var(--navy);
+  border-bottom:1px solid var(--border);padding-bottom:3px;flex:1;
+}
+
+/* VOICE — horizontal compact */
+.voice-card{background:var(--offwhite);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+.voice-row{display:flex;gap:10px;align-items:flex-start}
+.mic-btn{
+  width:36px;height:36px;border-radius:50%;background:var(--white);
+  border:2px solid var(--border-mid);cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.mic-btn:hover{border-color:var(--red);background:var(--red-light)}
+.mic-btn.on{border-color:var(--red);background:var(--red);animation:pulse 1.2s infinite}
+.mic-btn.on svg{stroke:white}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(200,40,30,0.4)}70%{box-shadow:0 0 0 7px rgba(200,40,30,0)}100%{box-shadow:0 0 0 0 rgba(200,40,30,0)}}
+.mic-btn svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke 0.2s}
+#transcript{
+  flex:1;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  padding:8px 10px;font-family:'Barlow',sans-serif;font-size:12px;
+  color:var(--text);resize:none;height:56px;width:100%;
+  outline:none;transition:border-color 0.2s;line-height:1.4;
+}
+#transcript:focus{border-color:var(--red)}
+.rec-row{display:none;align-items:center;gap:5px;margin-top:5px;font-size:10px;color:var(--red);font-weight:600}
+.rec-row.on{display:flex}
+.rec-dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* PHOTO — compact horizontal strip */
+.photo-zone{
+  border:2px dashed var(--border-mid);border-radius:var(--radius);
+  padding:8px 14px;cursor:pointer;transition:all 0.2s;background:var(--offwhite);
+  display:flex;align-items:center;gap:12px;
+}
+.photo-zone:hover{border-color:var(--red);background:var(--red-light)}
+.photo-zone.loaded{border-style:solid;border-color:var(--red);background:var(--white)}
+.p-icon{font-size:20px;opacity:0.4;flex-shrink:0}
+.p-text{font-size:11px;color:var(--muted);line-height:1.4}
+.p-text strong{color:var(--text)}
+#photo-input{display:none}
+#img-preview{height:40px;width:auto;border-radius:var(--radius);display:none}
+.remove-img{display:none;font-size:10px;color:var(--red);cursor:pointer;margin-left:auto;letter-spacing:1px;text-transform:uppercase;font-weight:600;flex-shrink:0}
+
+/* CONTACT FORM — compact 3-col grid */
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field.span2{grid-column:span 2}
+.field.span3{grid-column:1/-1}
+label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600}
+input,select{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-family:'Barlow',sans-serif;font-size:12px;
+  padding:6px 8px;outline:none;transition:border-color 0.2s;width:100%;
+}
+input:focus,select:focus{border-color:var(--red)}
+select option{background:white}
+input::placeholder{color:var(--light)}
+
+/* PRODUCTS — tight 3-col grid */
+.prod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.prod-chip{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 8px;cursor:pointer;transition:all 0.12s;
+  display:flex;align-items:flex-start;gap:6px;
+}
+.prod-chip:hover{border-color:var(--red)}
+.prod-chip.on{border-color:var(--red);background:var(--red-light)}
+.chk{
+  width:12px;height:12px;border-radius:2px;border:1.5px solid var(--border-mid);
+  flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.12s;
+}
+.prod-chip.on .chk{background:var(--red);border-color:var(--red)}
+.chk svg{display:none}
+.prod-chip.on .chk svg{display:block}
+.p-name{font-size:11px;font-weight:600;color:var(--text);line-height:1.3}
+.p-sub{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* NOTES — one-liner */
+.notes-row{display:flex;gap:0}
+#f-notes{
+  flex:1;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-family:'Barlow',sans-serif;font-size:12px;
+  padding:7px 10px;outline:none;transition:border-color 0.2s;
+  height:36px;resize:none;line-height:1.4;
+}
+#f-notes:focus{border-color:var(--red)}
+#f-notes::placeholder{color:var(--light)}
+
+/* GENERATE BUTTON */
+.gen-btn{
+  background:var(--red);color:var(--white);border:none;border-radius:var(--radius);
+  padding:10px 20px;font-family:'Barlow Condensed',sans-serif;font-size:14px;
+  font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;
+  width:100%;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;
+  flex-shrink:0;
+}
+.gen-btn:hover{background:var(--red-dark)}
+.gen-btn:disabled{opacity:0.5;cursor:not-allowed}
+.spin{width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RIGHT PANEL */
+.right-head{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.right-num{width:18px;height:18px;border-radius:50%;background:var(--navy);color:var(--white);font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;gap:8px}
+.empty-ico{font-size:32px;opacity:0.13}
+.empty-msg{font-size:11px;color:var(--light);max-width:180px;line-height:1.6}
+
+.status-pill{background:var(--red-light);border:1px solid #f0c0bc;border-radius:var(--radius);padding:7px 11px;font-size:11px;color:var(--red);display:none;align-items:center;gap:6px;font-weight:600}
+.status-pill.on{display:flex}
+.s-dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
+
+/* QUOTE DOC */
+.quote-doc{display:none}
+.quote-doc.show{display:block;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.doc-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.doc-navy-bar{height:4px;background:var(--navy)}
+.doc-red-stripe{height:2px;background:var(--red)}
+.doc-inner{padding:16px}
+
+.doc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.doc-logo-text{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--navy);line-height:1}
+.doc-logo-text span{color:var(--red)}
+.doc-logo-sub{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.doc-meta{text-align:right;font-size:10px;color:var(--muted);line-height:1.8}
+.doc-meta .qid{color:var(--red);font-family:'Source Code Pro',monospace;font-size:11px;font-weight:500}
+
+.doc-section{margin-bottom:13px}
+.doc-sec-label{font-family:'Barlow Condensed',sans-serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--red);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.doc-sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.doc-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)}
+.doc-key{color:var(--muted)}
+.doc-val{color:var(--text);font-weight:500;text-align:right;max-width:55%}
+
+.doc-note{background:var(--red-light);border-left:3px solid var(--red);padding:10px 12px;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;color:var(--text);line-height:1.6;margin-bottom:13px}
+
+.prod-line{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);gap:8px}
+.prod-line-name{font-size:11px;font-weight:600;color:var(--navy)}
+.prod-line-desc{font-size:9px;color:var(--muted);margin-top:2px}
+.prod-price{font-family:'Source Code Pro',monospace;font-size:10px;font-weight:500;color:var(--red);white-space:nowrap}
+
+.total-strip{background:var(--navy);border-radius:var(--radius);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin:12px 0}
+.total-lbl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#8a9ab5}
+.total-num{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--white)}
+
+.why-block{background:var(--offwhite);border-radius:var(--radius);padding:10px 12px;font-size:10px;color:var(--muted);line-height:1.7;margin-bottom:12px}
+
+.doc-footer{text-align:center;padding-top:10px;border-top:1px solid var(--border);font-size:9px;color:var(--light);line-height:1.8}
+.doc-footer strong{color:var(--text)}
+
+.doc-actions{display:flex;gap:7px;margin-top:10px}
+.doc-btn{flex:1;padding:8px;border-radius:var(--radius);font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:4px}
+.doc-btn-out{background:var(--white);border:1px solid var(--border);color:var(--text)}
+.doc-btn-out:hover{border-color:var(--red);color:var(--red)}
+.doc-btn-navy{background:var(--navy);border:none;color:var(--white)}
+.doc-btn-navy:hover{background:var(--navy-mid)}
+
+@media print{
+  .left,.header,.top-bar,.doc-actions,.status-pill{display:none!important}
+  html,body{height:auto;overflow:visible}
+  .app{grid-template-columns:1fr;height:auto}
+  .right{padding:0;background:white;overflow:visible;height:auto}
+  .doc-wrap{border:none}
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar"></div>
+
+<header class="header">
+  <div class="logo-area">
+    <div class="logo-mark">
+      <svg viewBox="0 0 28 28" fill="none">
+        <rect x="2" y="5" width="8" height="8" fill="#c8281e"/>
+        <rect x="12" y="5" width="8" height="8" fill="#c8281e"/>
+        <rect x="7" y="13" width="8" height="8" fill="white" opacity="0.9"/>
+        <rect x="2" y="16" width="4" height="4" fill="#c8281e" opacity="0.5"/>
+        <rect x="17" y="16" width="4" height="4" fill="#c8281e" opacity="0.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-top"><span>A</span>USTIN <span>A</span>MERICAN <span>T</span>ECHNOLOGY</div>
+      <div class="logo-btm">SMT &amp; PCB Cleaning Equipment</div>
+    </div>
+  </div>
+  <div class="header-badge">Quote Builder</div>
+</header>
+
+<div class="app">
+
+  <!-- LEFT: ALL VISIBLE, NO SCROLL -->
+  <div class="left">
+
+    <!-- 1. VOICE -->
+    <div>
+      <div class="sec"><div class="sec-num">1</div><div class="sec-title">Describe the Opportunity</div></div>
+      <div class="voice-card">
+        <div class="voice-row">
+          <button class="mic-btn" id="mic-btn" title="Click to record">
+            <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          </button>
+          <textarea id="transcript" placeholder="Click the mic and speak — or type here. E.g. 'Electronics manufacturer, SMT line, flux residue issues after reflow, looking at batch vs inline options...'"></textarea>
+        </div>
+        <div class="rec-row" id="rec-row"><div class="rec-dot"></div>Listening — speak now</div>
+      </div>
+    </div>
+
+    <!-- 2. PHOTO -->
+    <div>
+      <div class="sec"><div class="sec-num">2</div><div class="sec-title">Photo — Business Card or Badge</div></div>
+      <div class="photo-zone" id="photo-zone" onclick="document.getElementById('photo-input').click()">
+        <div class="p-icon">📷</div>
+        <div class="p-text"><strong>Click to upload a photo</strong><br>Business card or badge — contact details auto-extracted</div>
+        <input type="file" id="photo-input" accept="image/*">
+        <img id="img-preview" alt="Preview">
+        <div class="remove-img" id="remove-img" onclick="clearPhoto(event)">✕ Remove</div>
+      </div>
+    </div>
+
+    <!-- 3. CONTACT -->
+    <div>
+      <div class="sec"><div class="sec-num">3</div><div class="sec-title">Contact Details</div></div>
+      <div class="form-grid">
+        <div class="field"><label>Company</label><input id="f-company" placeholder="e.g. Trotter Controls"></div>
+        <div class="field"><label>Contact Name</label><input id="f-contact" placeholder="e.g. Sarah Mitchell"></div>
+        <div class="field"><label>Title / Role</label><input id="f-role" placeholder="e.g. Process Engineer"></div>
+        <div class="field"><label>Industry</label>
+          <select id="f-industry">
+            <option value="">Select…</option>
+            <option>Automotive Electronics</option>
+            <option>Medical Devices</option>
+            <option>Military / Defense</option>
+            <option>Aerospace</option>
+            <option>Consumer Electronics</option>
+            <option>Industrial Controls</option>
+            <option>Contract Manufacturing</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Email</label><input id="f-email" type="email" placeholder="contact@company.com"></div>
+        <div class="field"><label>Phone</label><input id="f-phone" type="tel" placeholder="(000) 000-0000"></div>
+        <div class="field span3"><label>Event / Context</label><input id="f-event" placeholder="e.g. IPC APEX Expo 2025 — Anaheim, CA"></div>
+      </div>
+    </div>
+
+    <!-- 4. PRODUCTS -->
+    <div>
+      <div class="sec"><div class="sec-num">4</div><div class="sec-title">Products / Services of Interest</div></div>
+      <div class="prod-grid" id="prod-grid"></div>
+    </div>
+
+    <!-- 5. NOTES -->
+    <div>
+      <div class="sec"><div class="sec-num">5</div><div class="sec-title">Application Notes</div></div>
+      <textarea id="f-notes" placeholder="Board type, flux chemistry, throughput, contamination standards, current cleaner, budget range…"></textarea>
+    </div>
+
+    <!-- GENERATE -->
+    <button class="gen-btn" id="gen-btn" onclick="generateQuote()">
+      <div class="spin" id="spin"></div>
+      <span id="btn-lbl">Build Quote</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+
+  </div>
+
+  <!-- RIGHT: QUOTE PREVIEW -->
+  <div class="right">
+    <div class="right-head">
+      <div class="right-num">✓</div>
+      <div class="sec-title">Quote Preview</div>
+    </div>
+
+    <div class="status-pill" id="status-pill"><div class="s-dot"></div><span id="status-msg">Processing…</span></div>
+
+    <div class="empty-state" id="empty-state">
+      <div class="empty-ico">📋</div>
+      <div class="empty-msg">Fill in the details on the left and click Build Quote to generate a professional customer-facing document.</div>
+    </div>
+
+    <div class="quote-doc" id="quote-doc">
+      <div class="doc-wrap">
+        <div class="doc-navy-bar"></div>
+        <div class="doc-red-stripe"></div>
+        <div class="doc-inner">
+          <div class="doc-head">
+            <div>
+              <div class="doc-logo-text"><span>A</span>USTIN <span>A</span>MERICAN <span>T</span>ECHNOLOGY</div>
+              <div class="doc-logo-sub">Equipment Quotation — Made in the USA</div>
+            </div>
+            <div class="doc-meta">
+              <div class="qid" id="d-qid">—</div>
+              <div><strong id="d-date">—</strong></div>
+              <div id="d-event"></div>
+              <div style="color:var(--red);font-size:9px;margin-top:2px">Valid 30 days</div>
+            </div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-sec-label">Prepared For</div>
+            <div class="doc-row"><span class="doc-key">Company</span><span class="doc-val" id="d-co">—</span></div>
+            <div class="doc-row"><span class="doc-key">Contact</span><span class="doc-val" id="d-ct">—</span></div>
+            <div class="doc-row"><span class="doc-key">Role</span><span class="doc-val" id="d-ro">—</span></div>
+            <div class="doc-row"><span class="doc-key">Industry</span><span class="doc-val" id="d-ind">—</span></div>
+            <div class="doc-row"><span class="doc-key">Email</span><span class="doc-val" id="d-em">—</span></div>
+            <div class="doc-row"><span class="doc-key">Phone</span><span class="doc-val" id="d-ph">—</span></div>
+          </div>
+
+          <div class="doc-note" id="d-note"></div>
+
+          <div class="doc-section">
+            <div class="doc-sec-label">Recommended Equipment &amp; Services</div>
+            <div id="prod-lines"></div>
+          </div>
+
+          <div class="total-strip">
+            <div class="total-lbl">Estimated Investment</div>
+            <div class="total-num" id="d-total">—</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-sec-label">Why Austin American Technology</div>
+            <div class="why-block" id="d-why">64 years designing and manufacturing industrial-grade cleaning equipment. All systems built to spec in Austin, Texas. Serving automotive, medical, military, and aerospace industries worldwide.</div>
+          </div>
+
+          <div class="doc-footer">
+            <strong>Austin American Technology</strong><br>
+            401 Industrial Blvd, Burnet, Texas 78611<br>
+            Sales: (512) 756-4150 Ext 110 &nbsp;·&nbsp; aat-corp.com
+          </div>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button class="doc-btn doc-btn-out" id="copy-btn" onclick="copyQuote()">📋 Copy</button>
+        <button class="doc-btn doc-btn-navy" onclick="window.print()">🖨 Print / PDF</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const PRODS=[
+  {id:'p1',name:'Aqua ROSE 4.0 Batch Cleaner',sub:'Aqueous batch / ionic test',price:'Contact sales'},
+  {id:'p2',name:'HydroJet In-Line',sub:'24in belt, high-throughput',price:'Contact sales'},
+  {id:'p3',name:'MicroJet Water-Only',sub:'18in belt, no chemistry',price:'Contact sales'},
+  {id:'p4',name:'NanoJet In-Line',sub:'12in belt, compact',price:'Contact sales'},
+  {id:'p5',name:'T-20 Water/Chemistry',sub:'24in belt, dual chemistry',price:'Contact sales'},
+  {id:'p6',name:'Modular In-Line (T-Series)',sub:'T6–T15 configurable',price:'Contact sales'},
+  {id:'p7',name:'Mega Solvent Cleaner',sub:'Solvent batch + ROSE test',price:'Contact sales'},
+  {id:'p8',name:'X Series Stencil Cleaner',sub:'Automated stencil cleaning',price:'Contact sales'},
+  {id:'p9',name:'Ultrasonic Stencil Cleaner',sub:'High-precision ultrasonics',price:'Contact sales'},
+  {id:'p10',name:'Cleaner Accessories',sub:'Baskets, racks, chemistry',price:'Contact sales'},
+  {id:'p11',name:'Parts & Service Contract',sub:'Annual support agreement',price:'Contact sales'},
+  {id:'p12',name:'Demo Room Evaluation',sub:'Virtual or in-person',price:'Complimentary'},
+];
+const sel=new Set();
+
+function buildGrid(){
+  document.getElementById('prod-grid').innerHTML=PRODS.map(p=>`
+    <div class="prod-chip" id="c-${p.id}" onclick="toggleProd('${p.id}')">
+      <div class="chk"><svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></div>
+      <div><div class="p-name">${p.name}</div><div class="p-sub">${p.sub}</div></div>
+    </div>`).join('');
+}
+function toggleProd(id){sel.has(id)?sel.delete(id):sel.add(id);document.getElementById('c-'+id).classList.toggle('on',sel.has(id))}
+
+let recog=null,isRec=false;
+function initVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  recog=new SR();recog.continuous=true;recog.interimResults=true;recog.lang='en-US';
+  let final='';
+  recog.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)final+=e.results[i][0].transcript+' ';
+      else interim+=e.results[i][0].transcript;
+    }
+    document.getElementById('transcript').value=final+interim;
+  };
+  recog.onerror=()=>stopRec();
+  recog.onend=()=>{if(isRec)recog.start()};
+}
+function startRec(){isRec=true;recog.start();document.getElementById('mic-btn').classList.add('on');document.getElementById('rec-row').classList.add('on')}
+function stopRec(){isRec=false;if(recog)recog.stop();document.getElementById('mic-btn').classList.remove('on');document.getElementById('rec-row').classList.remove('on')}
+document.getElementById('mic-btn').addEventListener('click',()=>{
+  if(!recog){alert('Voice input not supported here. Please use Chrome.');return}
+  isRec?stopRec():startRec();
+});
+
+document.getElementById('photo-input').addEventListener('change',function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const prev=document.getElementById('img-preview');
+    prev.src=ev.target.result;prev.style.display='block';
+    document.getElementById('remove-img').style.display='block';
+    document.getElementById('photo-zone').classList.add('loaded');
+    document.querySelector('.p-icon').style.display='none';
+    document.querySelector('.p-text').style.display='none';
+  };
+  r.readAsDataURL(f);
+});
+function clearPhoto(e){
+  e.stopPropagation();
+  document.getElementById('photo-input').value='';
+  document.getElementById('img-preview').style.display='none';document.getElementById('img-preview').src='';
+  document.getElementById('remove-img').style.display='none';
+  document.getElementById('photo-zone').classList.remove('loaded');
+  document.querySelector('.p-icon').style.display='block';document.querySelector('.p-text').style.display='block';
+}
+
+function setStatus(m){document.getElementById('status-msg').textContent=m;document.getElementById('status-pill').classList.add('on')}
+function clearStatus(){document.getElementById('status-pill').classList.remove('on')}
+
+function generateQuote(){
+  const company=document.getElementById('f-company').value;
+  const contact=document.getElementById('f-contact').value;
+  const role=document.getElementById('f-role').value;
+  const industry=document.getElementById('f-industry').value;
+  const email=document.getElementById('f-email').value;
+  const phone=document.getElementById('f-phone').value;
+  const event=document.getElementById('f-event').value;
+  const notes=document.getElementById('transcript').value;
+  const chosen=PRODS.filter(p=>sel.has(p.id));
+
+  const qid='AAT-'+new Date().getFullYear()+'-'+String(Math.floor(1000+Math.random()*9000));
+  const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const indCtx={
+    'Automotive Electronics':'automotive electronics, where IPC cleanliness standards and flux residue control are critical to long-term reliability',
+    'Medical Devices':'medical device manufacturing, where ionic contamination control and full documentation are non-negotiable',
+    'Military / Defense':'military and defense electronics, where MIL-spec cleanliness requirements demand validated cleaning processes',
+    'Aerospace':'aerospace electronics, where J-STD-001 compliance and zero-defect cleaning are mission-critical',
+    'Consumer Electronics':'high-volume consumer electronics, where throughput and cost-per-board efficiency drive decisions',
+    'Industrial Controls':'industrial controls manufacturing, where uptime and reliable flux removal protect downstream performance',
+    'Contract Manufacturing':'contract manufacturing, where flexibility across board types and chemistries matters most',
+  }[industry]||'electronics manufacturing';
+
+  const intro=`Thank you for connecting${event?' at '+event:''}. Based on your needs in ${indCtx}, we've outlined AAT equipment most relevant to your operation. AAT has been designing and manufacturing industrial-grade cleaning systems for over 64 years — all built to your spec in Austin, Texas.`;
+
+  const lines=chosen.length?chosen:[
+    {name:'Application Review & Demo',sub:'Complimentary evaluation — virtual or in-person at our demo room',price:'Complimentary'},
+    {name:'Equipment Recommendation',sub:'Tailored to your board type, flux chemistry & throughput',price:'Contact sales'},
+  ];
+
+  const whyMap={
+    'Automotive Electronics':'AAT systems are trusted by automotive electronics suppliers requiring IPC-compliant cleanliness. Our in-line cleaners deliver consistent, validated results at high volumes shift after shift.',
+    'Medical Devices':'AAT batch cleaners are validated in medical device environments requiring ionic contamination control and process traceability. Our systems support full documentation and verification.',
+    'Military / Defense':'AAT has decades of experience supplying cleaning systems to military and defense electronics manufacturers to MIL-spec requirements with full process control.',
+    'Aerospace':'AAT cleaning systems are used by aerospace suppliers requiring J-STD-001 compliance. We offer aqueous and solvent options matched to your chemistry and qualification requirements.',
+    'Contract Manufacturing':'AAT modular and in-line systems give contract manufacturers the flexibility to handle diverse board types and chemistries on one platform — reducing changeover time and chemistry costs.',
+  };
+
+  document.getElementById('d-qid').textContent=qid;
+  document.getElementById('d-date').textContent=dateStr;
+  document.getElementById('d-event').textContent=event||'';
+  document.getElementById('d-co').textContent=company||'—';
+  document.getElementById('d-ct').textContent=contact||'—';
+  document.getElementById('d-ro').textContent=role||'—';
+  document.getElementById('d-ind').textContent=industry||'—';
+  document.getElementById('d-em').textContent=email||'—';
+  document.getElementById('d-ph').textContent=phone||'—';
+  document.getElementById('d-note').textContent=intro;
+  document.getElementById('d-total').textContent=chosen.length?'Contact Sales for Pricing':'TBD — Pending Application Review';
+  document.getElementById('d-why').textContent=whyMap[industry]||'64 years designing and manufacturing industrial-grade cleaning equipment. All systems built to spec in Austin, Texas. Serving automotive, medical, military, and aerospace industries worldwide.';
+
+  document.getElementById('prod-lines').innerHTML=lines.map(p=>`
+    <div class="prod-line">
+      <div><div class="prod-line-name">${p.name}</div><div class="prod-line-desc">${p.sub||''}</div></div>
+      <div class="prod-price">${p.price}</div>
+    </div>`).join('');
+
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('quote-doc').classList.add('show');
+}
+
+function copyQuote(){
+  const lines=document.querySelectorAll('.prod-line');
+  const prods=Array.from(lines).map(l=>`• ${l.querySelector('.prod-line-name').textContent} — ${l.querySelector('.prod-price').textContent}`).join('\n');
+  const txt=`AUSTIN AMERICAN TECHNOLOGY — EQUIPMENT QUOTATION\n${document.getElementById('d-qid').textContent} | ${document.getElementById('d-date').textContent}\n\nPrepared for: ${document.getElementById('d-co').textContent} / ${document.getElementById('d-ct').textContent}\n\n${document.getElementById('d-note').textContent}\n\nRECOMMENDED EQUIPMENT & SERVICES:\n${prods}\n\nESTIMATED INVESTMENT: ${document.getElementById('d-total').textContent}\n\n${document.getElementById('d-why').textContent}\n\n---\nAustin American Technology\n401 Industrial Blvd, Burnet, Texas 78611\nSales: (512) 756-4150 Ext 110 | aat-corp.com`;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const b=document.getElementById('copy-btn');b.textContent='✓ Copied!';
+    setTimeout(()=>b.textContent='📋 Copy',2000);
+  });
+}
+
+buildGrid();
+initVoice();
+</script>
+</body>
+</html>
